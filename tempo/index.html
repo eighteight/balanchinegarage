@@ -1,0 +1,593 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0036)http://www.tempotempotempo.com/feb/# -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>balanchine garage</title>
+
+
+<link href="Tempo_files/css" rel="stylesheet" type="text/css">
+<link href="Tempo_files/css(1)" rel="stylesheet" type="text/css">
+
+<style>
+body{
+	margin:0px;
+	padding:0px;
+	overflow:hidden;
+	color:#afc2fd;	
+	/*font-family:Helvetica, sans-serif;*/
+	font-family: 'Open Sans', sans-serif;
+	font-size:13px;
+	text-align:center;
+	background-color:#fff;
+	/*cursor:none;*/
+}
+
+.overlay{
+	position:fixed;
+	width:100%;
+	height:100%;
+	top:0px;
+	left:0px;
+	background-color:rgba(255,255,255,1);
+	z-index:5;
+	-webkit-transition:opacity .5s ease-out;-moz-transition:opacity .5s ease-out;-o-transition:opacity .5s ease-out;
+}
+
+.center{
+	position:absolute;
+	height:100px;
+	width:800px;
+	top:30%;
+	left:50%;
+	text-align:center;
+	margin-left:-400px;
+	font-size:24px;
+}
+
+a{
+	/*text-decoration:none;*/
+	color:#afc2fd;	
+}
+
+#sound{
+	position:fixed;
+	bottom:2px;
+	left:2px;
+	text-align:left;
+	z-index:6;
+}
+
+#replay{
+	display:none;	
+}
+
+#topLeft{
+	position:fixed;
+	top:5px; 
+	left:5px;
+	z-index:5;
+}
+
+#topRight{
+	position:fixed;
+	top:5px; 
+	right:5px;
+	z-index:5;
+	padding:5px;
+	background:rgba(255,255,255,.5);
+	text-align:right;
+	color:#000;
+	font-family: 'Montserrat', sans-serif;
+
+}
+
+#topRight a{
+	color:#000;
+	text-decoration:underline;
+	cursor:pointer;	
+}
+#poster{
+	position:fixed;
+	left:50%;
+	top:50%;
+	z-index:6;
+	margin-left:-170px;
+	margin-top:-250px;
+	display:none;	
+}
+
+#bottomMiddle{
+	position:fixed;
+	bottom:5px; 
+	left:50%;
+	margin-left:-20px;
+	z-index:5;
+	padding:5px;
+	text-align:right;
+	color:#000;
+	display:none;
+}
+
+
+#topMiddle{
+	position:fixed;
+	top:10px; 
+	left:50%;
+	margin-left:-75px;
+	z-index:5;
+	padding:5px;
+	text-align:right;
+	color:#000;
+	display:none;
+}
+
+
+</style>
+<script>window["_GOOG_TRANS_EXT_VER"] = "1";</script><script>window["_GOOG_TRANS_EXT_VER"] = "1";</script></head>
+
+<body style="">
+
+<div id="poster">
+	BALANCHINE GARAGE
+</div>
+
+<div class="overlay" id="load">
+    <div class="center">
+    	BALANCHINE GARAGE
+        <div id="loading"><a href="Tempo_files/Tempo.html">PLAY</a></div>
+    </div>
+</div>
+
+<div id="bottomMiddle" style="display: block;">
+	(click the dancer)
+</div>
+
+<div id="topMiddle" style="display: block;">
+	BALANCHINE GARAGE
+</div>
+
+<div id="topMiddle">
+	(click the dancer)
+</div>
+
+<script src="Tempo_files/Three.js"></script>
+<script src="Tempo_files/Detector.js"></script>
+<!-- 
+
+audio 
+include all to make make dancer work
+
+-->
+<script src="Tempo_files/dancer.js"></script>
+<script src="Tempo_files/support.js"></script>
+<script src="Tempo_files/kick.js"></script>
+<script src="Tempo_files/adapterWebkit.js"></script>
+<script src="Tempo_files/adapterMoz.js"></script>
+<script src="Tempo_files/adapterFlash.js"></script>
+<script src="Tempo_files/fft.js"></script>
+<script src="Tempo_files/flash_detect.js"></script>
+<script src="Tempo_files/dancer.fft.js"></script>  
+
+<!--custom-->
+
+<script src="Tempo_files/HandleDancer.js"></script>
+<script src="Tempo_files/FaceScale.js"></script>
+<script src="Tempo_files/Distortion.js"></script>
+
+<script>
+
+	
+	
+	var camera, cameraRad = 20.0, scene, renderer, playerLoaded = false, songLoaded = false, projector;
+	var cameraInc = 0.0, cameraCopy, cameraSpeed = 0.0,cs=0.0, mouseX = 0.0, mouseY = 0.0, windowHalfX = window.innerWidth *.5,  windowHalfY = window.innerHeight *.5;
+	var animation, player, playerArr=[], playerMat, clickMat, hitCube, environment, vertexCols = [], timeMult = 1, faceScaleObject, distortionObject, bonePos = new THREE.Vector3(), effectNum = 3;
+	var bg, bgMat, bgClickMat, bgTex, bgCrazyTex=[];
+	var clock = new THREE.Clock();
+	var doClickEffect = false, clickHue = 0.0, clickEffect = 0, clickBW = 0.0;
+;
+	var path = "Tempo_files/Assets/Cube/";
+	var format = '.png';
+	var urls = [
+		path + 'px' + format, path + 'nx' + format,
+		path + 'py' + format, path + 'ny' + format,
+		path + 'pz' + format, path + 'nz' + format
+	];
+	
+	var vNames = [ 'a', 'b', 'c', 'd' ];
+	var reflectionCube;
+	init();
+	animate();
+
+	function init() {
+		
+		if ( ! Detector.webgl ){
+			 //Detector.addGetWebGLMessage();
+			 document.getElementById("poster").style.display= "block";
+			  document.getElementById("load").style.display= "none";
+			 
+		}
+		
+		initDancer(null);
+		
+		projector = new THREE.Projector();
+		
+		renderer = new THREE.WebGLRenderer({preserveDrawingBuffer:true});
+		renderer.setSize( window.innerWidth, window.innerHeight );
+		document.body.appendChild( renderer.domElement );
+		renderer.autoClearColor = false;
+	
+		camera = new THREE.PerspectiveCamera( 100, window.innerWidth / window.innerHeight, 1, 1000 );
+
+		scene = new THREE.Scene();
+		scene.fog = new THREE.FogExp2( 0xffffff, .01);		
+
+		
+		cameraCopy = new THREE.Object3D();
+		scene.add(cameraCopy);
+		
+		bgTex = THREE.ImageUtils.loadTexture('Tempo_files/Assets/Images/Grand-Central-Terminal.jpg');
+		bgClickMat =  new THREE.MeshBasicMaterial({color:0xffffff, side:THREE.DoubleSide, transparent:true, opacity:.1});
+		bgMat =  new THREE.MeshBasicMaterial({transparent:true, color:0xffffff, opacity:.1, side:THREE.DoubleSide, map:bgTex});
+		bg = new THREE.Mesh(new THREE.PlaneGeometry(1600, 800, 1, 1),bgMat);
+		bg.position.z = -200;
+		
+		var dl = new THREE.DirectionalLight(0xffffff, 1.0);
+		scene.add(dl);
+		
+		var pl = new THREE.DirectionalLight(0xffffff, 1.0);
+		scene.add(pl);
+		
+		reflectionCube = THREE.ImageUtils.loadTextureCube( urls );
+		reflectionCube.format = THREE.RGBFormat;
+		
+		//bg.rotation.x=Math.PI*.5;
+		
+		cameraCopy.add(bg);
+		
+		window.addEventListener( 'resize', onWindowResize, false );
+		document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+		document.addEventListener( 'mousewheel', onDocumentMouseWheel, false );
+		document.addEventListener( 'DOMMouseScroll', onDocumentMouseWheel, false);
+		document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+		document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+
+		
+		var loader = new THREE.JSONLoader();
+		loader.load( "Tempo_files/Assets/SceneFinal/sceneFinal.js", createScene );
+	}
+	
+	function createScene(geometry, materials){
+			
+		//mesh = new THREE.Mesh(new THREE.CubeGeometry(10,10,10, 1, 1, 1), new THREE.MeshBasicMaterial({side:THREE.DoubleSide}));
+		//scene.add(mesh);
+		
+		var environmentLoader = new THREE.JSONLoader();
+		environmentLoader.load( "Tempo_files/Assets/SceneFinal/environment.js", loadEnvironment);
+		
+		
+		playerMat = new THREE.MeshLambertMaterial( { side:THREE.DoubleSide, envMap:reflectionCube, reflectivity:.5, combine:THREE.MixOperation, vertexColors:THREE.VertexColors, shading:THREE.FlatShading});
+		playerMat.skinning = true;
+		
+		clickMat = new THREE.MeshBasicMaterial( { side:THREE.DoubleSide, wireframe:true, shading:THREE.FlatShading});
+		clickMat.skinning = true;
+		
+		THREE.AnimationHandler.add( geometry.animation );
+		
+		player = new THREE.SkinnedMesh( geometry, playerMat, false );
+		scene.add(player);
+		hitCube = new THREE.Mesh(new THREE.CubeGeometry(20, 20, 20, 1,1,1), new THREE.MeshBasicMaterial({color:0xffffff,visible:false}));
+		scene.add(hitCube);
+		playerArr.push(hitCube);
+		changeVertexColors(player, .7);
+		
+		faceScaleObject = new FaceScale(player, "y", .5, .01);
+		faceScaleObject.init();
+		faceScaleObject.resetFaces();
+		
+		distortionObject = new DistortionObject(player, true, "y", 1.5, .5, .1, 0.0);
+		distortionObject.init();
+		distortionObject.resetFaces();
+		 
+		
+		animation = new THREE.Animation( player,player.geometry.animation.name);
+		
+		animation.play();
+	}
+	
+	function loadEnvironment(geometry, material){
+		playerLoaded = true;
+		if(songLoaded)
+			initPlayButton();
+			
+		
+		environment = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial( { side:THREE.DoubleSide, color:0x686868, envMap:reflectionCube,  reflectivity:.1, combine:THREE.MixOperation, vertexColors:THREE.VertexColors, shading:THREE.NoShading}));
+		scene.add(environment);
+		environment.scale.set(20,20,20);
+		changeVertexColors(environment, .95);
+	}
+	
+	function changeVertexColors(OBJ, LT){
+		var i = 0;
+		var color, f;
+		
+		for ( var i = 0; i < OBJ.geometry.faces.length; i ++ ) {
+
+			f  = OBJ.geometry.faces[ i ];
+			
+			var n = ( f instanceof THREE.Face3 ) ? 3 : 4;
+	
+			for( var j = 0; j < n; j++ ) {
+				
+				color = new THREE.Color( 0xffffff );
+				
+				//var rnd = .4+Math.random()*.4;
+				var rnd = Math.random();
+				vertexCols.push(rnd);
+				
+				color.setHSL( rnd, 1.0, LT);
+	
+				f.vertexColors[ j ] = color;
+				
+			}
+
+		}	
+		OBJ.geometry.colorsNeedUpdate = true;
+	}
+
+
+	function onWindowResize() {
+		
+		windowHalfX = window.innerWidth / 2;
+		windowHalfY = window.innerHeight / 2;
+
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+
+		renderer.setSize( window.innerWidth, window.innerHeight );
+
+	}
+	
+	function doKick(){
+		timeMult= Math.random()*5;
+		animation.currentTime = Math.random()*2047;
+		cameraSpeed= -10+Math.random()*20;
+		cameraSpeed*=.005;
+		
+		if(Math.random()>.2){
+			bgMat.opacity = .2+Math.random()*.4;
+		}else{
+			bgMat.opacity = 0.0;
+		}
+
+		effectNum=Math.floor(Math.random()*3.0);
+		distortionObject.resetFaces();
+		faceScaleObject.resetFaces();
+		
+		player.material.reflectivity = Math.random();
+		
+		
+		if(Math.random()>.5){
+			playerMat.color.setHSL(Math.random(), 1.0, .5+Math.random()*.5)
+			playerMat.vertexColors = THREE.FaceColors;
+		}else{
+			playerMat.color.setHSL(Math.random(), 1.0, 1.0)
+			playerMat.vertexColors = THREE.VertexColors;	
+		}
+		//console.log(player.material.vertexColors);
+
+		//distortionObject.resetFaces();
+		
+	}
+
+	function animate() {
+
+		requestAnimationFrame( animate );
+		
+		var delta = clock.getDelta();
+		THREE.AnimationHandler.update( delta*timeMult );
+		
+		var wf;
+		if(dancer){
+			wf = dancer.getWaveform();
+		}
+		
+		
+		if(player && faceScaleObject){
+
+			if(effectNum==0){
+				if(wf)
+					faceScaleObject.animate(wf);
+				else 	
+					faceScaleObject.animate(null);
+			}else if(effectNum==1){
+				distortionObject.animate();	
+			}
+			
+			var boneInc=0;
+			player.geometry.colorsNeedUpdate = true;
+			
+			player.updateMatrixWorld(true);
+			var meshGlobal = new THREE.Vector3().getPositionFromMatrix(player.matrixWorld);
+			
+			player.traverse(function (bone) {
+				if(bone instanceof THREE.Bone) {
+					if(boneInc<1)
+						bonePos = new THREE.Vector3().getPositionFromMatrix(bone.skinMatrix).add(meshGlobal);
+					
+					boneInc++;
+					//console.log(typeof (bone), "GlobalPos", twinGlobalPos.x, twinGlobalPos.y, twinGlobalPos.z);
+				}
+			});
+			
+			hitCube.position.copy(bonePos);		
+			hitCube.position.y-=3;
+			
+		}
+		
+		if(doClickEffect){
+			doClick();
+	
+		}
+			
+		
+		//for(var k=0;k<mesh.geometry.vertices.length; k++){
+			//if(wf){
+				//mesh.geometry.vertices[k].y = wf[k*2]*100;
+				//mesh.geometry.verticesNeedUpdate = true;
+			//}
+		//}
+		cs+=(cameraSpeed-cs)*.2; 
+		cameraInc+= cs;	
+		
+		var xPos = bonePos.x+Math.sin(cameraInc)*cameraRad;
+		var zPos = bonePos.z+Math.cos(cameraInc)*cameraRad;
+		
+		camera.position.x = xPos;
+		camera.position.z = zPos;
+		
+		camera.position.y += ( -mouseY - camera.position.y ) * .009;
+		
+		var maxY =20;
+		if(camera.position.y > maxY) camera.position.y = maxY;
+		if(camera.position.y < 3) camera.position.y = 3;
+	
+		
+		camera.lookAt(bonePos);
+		
+		cameraCopy.position.copy(camera.position);
+		cameraCopy.rotation.copy(camera.rotation);
+		
+		renderer.render( scene, camera );
+	}
+	
+	function clickInits(){
+		clickEffect = Math.floor(Math.random()*4);
+	}
+	function doClick(){
+		player.material = clickMat;
+		bg.material = bgClickMat;
+		environment.material.visible = false;
+		clickHue+=.06;
+		clickHue = clickHue%1.0;
+		clickBW+=.06;		
+		switch(clickEffect){
+			case 0:
+			clickMat.color.setHSL(clickHue, 1.0, .5);
+			break;
+			case 1:
+				clickMat.color.setHSL(Math.random(), 1.0, .5);
+			break;
+			case 2:
+				clickMat.color.setHSL(0, 0, Math.random());
+			break;
+			case 3:
+				clickMat.color.setHSL(0, 0, .5+Math.sin(clickBW)*.5);
+			break;
+		}
+	
+	}
+	function killClick(){
+		player.material = playerMat;
+		bg.material = bgMat;
+		environment.material.visible = true;
+	}
+	
+	function onDocumentMouseDown( event ) {
+		event.preventDefault();
+		var vector = new THREE.Vector3( ( event.clientX / window.innerWidth ) * 2 - 1, - ( event.clientY / window.innerHeight ) * 2 + 1, 0.5 );
+		projector.unprojectVector( vector, camera );
+
+		var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+
+		var intersects = raycaster.intersectObjects( playerArr );
+		if(cameraRad>8){
+			if ( intersects.length > 0 ) {
+				doClickEffect = true;
+				clickInits();
+			}
+		}else{
+			doClickEffect = true;
+			clickInits();
+		}
+	}
+	
+	function onDocumentMouseUp( event ) {
+		event.preventDefault();
+		doClickEffect = false;
+		killClick();
+	}
+	
+	function onDocumentMouseMove( event ) {
+
+		mouseX = ( event.clientX - windowHalfX );
+		mouseY = ( event.clientY - windowHalfY );
+	}
+	
+	function onDocumentMouseWheel( event ) {
+				
+		if ( event.wheelDeltaY ) {
+			cameraRad -= event.wheelDeltaY * 0.01;
+		} else if ( event.wheelDelta ) {
+			cameraRad -= event.wheelDelta * 0.01;			
+		} else if ( event.detail ) {
+			cameraRad -= event.detail * 0.01;
+		}
+		
+		if(cameraRad<2)cameraRad=2;
+		if(cameraRad>20)cameraRad=20;
+		
+		camera.updateProjectionMatrix();
+				
+	}
+	
+	function initDrag(){
+		document.getElementById("load").style.display="block";
+		document.getElementById("loading").innerHTML="DRAG YOUR SONG.MP3 HERE AND LET'S DANCE";
+		
+		document.addEventListener( 'drop', onDocumentDrop, false );
+		document.addEventListener( 'dragover', onDocumentDragOver, false );
+		document.addEventListener( 'dragleave', onDocumentLeave, false );
+	
+	}
+	
+	function onDocumentDrop( event ) {
+		
+		event.preventDefault();
+				
+		var file = event.dataTransfer.files[ 0 ];
+		var reader = new FileReader();
+		
+		//dancer = null;
+		
+		reader.onload = function ( event ) {
+			
+			initDancer(event.target.result);
+	
+		};
+	
+		reader.readAsDataURL( file );
+	
+	}
+	
+	function onDocumentDragOver( event ) {
+
+		event.preventDefault();
+
+	}
+
+	function onDocumentLeave( event ) {
+
+		event.preventDefault();
+
+	}
+		
+
+</script><canvas width="2872" height="1478" style="width: 1436px; height: 739px;"></canvas>
+<script>
+	
+
+</script>
+
+
+
+</body></html>
