@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>balanchine garage 2
+		</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#info {
+				position: absolute;
+				top: 0px; width: 100%;
+				color: #ffffff;
+				padding: 5px;
+				font-family:Monospace;
+				font-size:13px;
+				font-weight: bold;
+				text-align:center;
+			}
+
+			a {
+				color: #ffffff;
+			}
+		</style>
+	</head>
+	<body>
+
+		<div id="info">Balanchine Garage 2. Grand Central<br/><img src="Assets/Images/screenshot.png" width="20px"></div>
+
+		<script src="three.min.js"></script>
+		<script src="Detector.js"></script>
+		<script src="dancer.js"></script>
+		<script src="support.js"></script>
+		<script src="kick.js"></script>
+		<script src="adapterWebkit.js"></script>
+		<script src="adapterMoz.js"></script>
+		<script src="adapterFlash.js"></script>
+		<script src="fft.js"></script>
+		<script src="flash_detect.js"></script>
+		<script src="dancer.fft.js"></script>  
+				
+		<script src="HandleDancer.js"></script>
+		<script src="FaceScale.js"></script>
+		<script src="Distortion.js"></script>
+		
+		<script>
+
+			var camera, cubeCamera, scene, renderer;
+			var cube, sphere, torus;
+			var reflectionCube, playerArr=[], vertexCols = [], songLoaded = false;
+
+			var fov = 70,
+			isUserInteracting = false,
+			onMouseDownMouseX = 0, onMouseDownMouseY = 0,
+			lon = 0, onMouseDownLon = 0,
+			lat = 0, onMouseDownLat = 0,
+			phi = 0, theta = 0;
+
+			var texture = THREE.ImageUtils.loadTexture( 'Assets/Images/Grand-Central-Terminal.jpg', new THREE.UVMapping(), function () {
+
+				init();
+				animate();
+
+			} );
+
+			function init() {
+				
+				initDancer(null);
+
+				camera = new THREE.PerspectiveCamera( fov, window.innerWidth / window.innerHeight, 1, 1000 );
+
+				scene = new THREE.Scene();
+
+				var mesh = new THREE.Mesh( new THREE.SphereGeometry( 500, 60, 40 ), new THREE.MeshBasicMaterial( { map: texture } ) );
+				mesh.scale.x = -1;
+				scene.add( mesh );
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				cubeCamera = new THREE.CubeCamera( 1, 1000, 256 );
+				cubeCamera.renderTarget.minFilter = THREE.LinearMipMapLinearFilter;
+				scene.add( cubeCamera );
+
+				document.body.appendChild( renderer.domElement );
+
+				//
+
+				var material = new THREE.MeshBasicMaterial( { envMap: cubeCamera.renderTarget } );
+
+				sphere = new THREE.Mesh( new THREE.SphereGeometry( 20, 30, 15 ), material );
+				scene.add( sphere );
+
+				cube = new THREE.Mesh( new THREE.CubeGeometry( 20, 20, 20 ), material );
+				scene.add( cube );
+
+				torus = new THREE.Mesh( new THREE.TorusKnotGeometry( 20, 5, 100, 25 ), material );
+				scene.add( torus );
+				var pl = new THREE.DirectionalLight(0xffffff, 1.0);
+				scene.add(pl);
+
+				var plbottom = new THREE.AmbientLight( 0x404040 );
+				scene.add(plbottom);
+				
+				document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+				document.addEventListener( 'mousewheel', onDocumentMouseWheel, false );
+				document.addEventListener( 'DOMMouseScroll', onDocumentMouseWheel, false);
+				window.addEventListener( 'resize', onWindowResized, false );
+
+				onWindowResized( null );
+				
+				
+				var loader = new THREE.JSONLoader();
+				loader.load( "Assets/SceneFinal/sceneFinal.js", createScene );
+
+			}
+			
+			function createScene(geometry, materials){
+				
+				//mesh = new THREE.Mesh(new THREE.CubeGeometry(10,10,10, 1, 1, 1), new THREE.MeshBasicMaterial({side:THREE.DoubleSide}));
+				//scene.add(mesh);
+				
+				var environmentLoader = new THREE.JSONLoader();
+				environmentLoader.load( "Assets/SceneFinal/environment.js", loadEnvironment);
+				
+				
+				playerMat = new THREE.MeshLambertMaterial( { side:THREE.DoubleSide, envMap:reflectionCube, reflectivity:.5, combine:THREE.MixOperation, vertexColors:THREE.VertexColors, shading:THREE.FlatShading});
+				playerMat.skinning = true;
+				
+				clickMat = new THREE.MeshBasicMaterial( { side:THREE.DoubleSide, wireframe:true, shading:THREE.FlatShading});
+				clickMat.skinning = true;
+				
+				THREE.AnimationHandler.add( geometry.animation );
+				
+				player = new THREE.SkinnedMesh( geometry, playerMat, false );
+				scene.add(player);
+				hitCube = new THREE.Mesh(new THREE.CubeGeometry(20, 20, 20, 1,1,1), new THREE.MeshBasicMaterial({color:0xffffff,visible:false}));
+				scene.add(hitCube);
+				playerArr.push(hitCube);
+				changeVertexColors(player, .7);
+				
+				faceScaleObject = new FaceScale(player, "y", .5, .01);
+				faceScaleObject.init();
+				faceScaleObject.resetFaces();
+				
+				distortionObject = new DistortionObject(player, true, "y", 1.5, .5, .1, 0.0);
+				distortionObject.init();
+				distortionObject.resetFaces();
+				 
+				
+				animation = new THREE.Animation( player,player.geometry.animation.name);
+				
+				animation.play();
+			}
+			
+			function loadEnvironment(geometry, material){
+				playerLoaded = true;
+				if(songLoaded)
+					initPlayButton();
+					
+				
+				environment = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial( { side:THREE.DoubleSide, color:0x686868, envMap:reflectionCube,  reflectivity:.1, combine:THREE.MixOperation, vertexColors:THREE.VertexColors, shading:THREE.NoShading}));
+				scene.add(environment);
+				environment.scale.set(20,20,20);
+				changeVertexColors(environment, .95);
+			}
+
+			function onWindowResized( event ) {
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				camera.projectionMatrix.makePerspective( fov, window.innerWidth / window.innerHeight, 1, 1100 );
+			}
+
+			function onDocumentMouseDown( event ) {
+
+				event.preventDefault();
+
+				onPointerDownPointerX = event.clientX;
+				onPointerDownPointerY = event.clientY;
+
+				onPointerDownLon = lon;
+				onPointerDownLat = lat;
+
+				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+				document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+			}
+
+			function changeVertexColors(OBJ, LT){
+				var i = 0;
+				var color, f;
+				
+				for ( var i = 0; i < OBJ.geometry.faces.length; i ++ ) {
+
+					f  = OBJ.geometry.faces[ i ];
+					
+					var n = ( f instanceof THREE.Face3 ) ? 3 : 4;
+			
+					for( var j = 0; j < n; j++ ) {
+						
+						color = new THREE.Color( 0xffffff );
+						
+						//var rnd = .4+Math.random()*.4;
+						var rnd = Math.random();
+						vertexCols.push(rnd);
+						
+						color.setHSL( rnd, 1.0, LT);
+			
+						f.vertexColors[ j ] = color;
+						
+					}
+
+				}	
+				OBJ.geometry.colorsNeedUpdate = true;
+			}
+			
+			function onDocumentMouseMove( event ) {
+				lon = ( event.clientX - onPointerDownPointerX ) * 0.1 + onPointerDownLon;
+				lat = ( event.clientY - onPointerDownPointerY ) * 0.1 + onPointerDownLat;
+			}
+
+			function onDocumentMouseUp( event ) {
+
+				document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
+				document.removeEventListener( 'mouseup', onDocumentMouseUp, false );
+
+			}
+
+			function onDocumentMouseWheel( event ) {
+
+				// WebKit
+
+				if ( event.wheelDeltaY ) {
+
+					fov -= event.wheelDeltaY * 0.05;
+
+				// Opera / Explorer 9
+
+				} else if ( event.wheelDelta ) {
+
+					fov -= event.wheelDelta * 0.05;
+
+				// Firefox
+
+				} else if ( event.detail ) {
+
+					fov += event.detail * 1.0;
+
+				}
+
+				camera.projectionMatrix.makePerspective( fov, window.innerWidth / window.innerHeight, 1, 1100 );
+
+			}
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+				render();
+
+			}
+
+			function render() {
+
+				var time = Date.now();
+
+				lon += .15;
+
+				lat = Math.max( - 85, Math.min( 85, lat ) );
+				phi = THREE.Math.degToRad( 90 - lat );
+				theta = THREE.Math.degToRad( lon );
+
+				sphere.position.x = Math.sin( time * 0.001 ) * 30;
+				sphere.position.y = Math.sin( time * 0.0011 ) * 30;
+				sphere.position.z = Math.sin( time * 0.0012 ) * 30;
+
+				sphere.rotation.x += 0.02;
+				sphere.rotation.y += 0.03;
+
+				cube.position.x = Math.sin( time * 0.001 + 2 ) * 30;
+				cube.position.y = Math.sin( time * 0.0011 + 2 ) * 30;
+				cube.position.z = Math.sin( time * 0.0012 + 2 ) * 30;
+
+				cube.rotation.x += 0.02;
+				cube.rotation.y += 0.03;
+
+				torus.position.x = Math.sin( time * 0.001 + 4 ) * 30;
+				torus.position.y = Math.sin( time * 0.0011 + 4 ) * 30;
+				torus.position.z = Math.sin( time * 0.0012 + 4 ) * 30;
+
+				torus.rotation.x += 0.02;
+				torus.rotation.y += 0.03;
+
+				camera.position.x = 100 * Math.sin( phi ) * Math.cos( theta );
+				camera.position.y = 100 * Math.cos( phi );
+				camera.position.z = 100 * Math.sin( phi ) * Math.sin( theta );
+
+				camera.lookAt( scene.position );
+
+				sphere.visible = false; // *cough*
+
+				cubeCamera.updateCubeMap( renderer, scene );
+
+				sphere.visible = true; // *cough*
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+
+	</body>
+</html>
