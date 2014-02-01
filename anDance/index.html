@@ -31,7 +31,7 @@
 	<body>
 
 		<div id="info">Balanchine Garage 2. Grand Central<br/><img src="Assets/Images/screenshot.png" width="20px"></div>
-
+		<div id="loading"><p>Loading Balanchine Garage...</p></div>
 		<script src="three.min.js"></script>
 		<script src="Detector.js"></script>
 		<script src="dancer.js"></script>
@@ -50,22 +50,31 @@
 		
 		<script>
 
-			var camera, cubeCamera, scene, renderer;
+			var camera, cubeCamera, cameraCopy, scene, renderer;
 			var cube, sphere, torus;
-			var reflectionCube, playerArr=[], vertexCols = [], songLoaded = false;
-
+			var reflectionCube, playerArr=[], vertexCols = [], songLoaded = false, playerLoaded = false, timeMult = 1, player, projector;
+			var doClickEffect = false, clickHue = 0.0, clickEffect = 0, clickBW = 0.0, bgClickMat;
+			var cs=0.0,cameraSpeed = 0.0, cameraInc = 0.0, bonePos = new THREE.Vector3(), cameraRad = 20.0,mouseX = 0.0, mouseY = 0.0, windowHalfX = window.innerWidth *.5,  windowHalfY = window.innerHeight *.5;;
+			var bg, bgMat, effectNum = 3;
 			var fov = 70,
 			isUserInteracting = false,
 			onMouseDownMouseX = 0, onMouseDownMouseY = 0,
 			lon = 0, onMouseDownLon = 0,
 			lat = 0, onMouseDownLat = 0,
 			phi = 0, theta = 0;
-
+			var path = "Assets/Cube/";
+			var format = '.png';
+			var urls = [
+				path + 'px' + format, path + 'nx' + format,
+				path + 'py' + format, path + 'ny' + format,
+				path + 'pz' + format, path + 'nz' + format
+			];
+			
+			var clock = new THREE.Clock();
+			
 			var texture = THREE.ImageUtils.loadTexture( 'Assets/Images/Grand-Central-Terminal.jpg', new THREE.UVMapping(), function () {
-
 				init();
 				animate();
-
 			} );
 
 			function init() {
@@ -79,7 +88,19 @@
 				var mesh = new THREE.Mesh( new THREE.SphereGeometry( 500, 60, 40 ), new THREE.MeshBasicMaterial( { map: texture } ) );
 				mesh.scale.x = -1;
 				scene.add( mesh );
+				
+				//cameraCopy = new THREE.Object3D();
+				//scene.add(cameraCopy);
+				
+				projector = new THREE.Projector();
+				
+				bgMat =  new THREE.MeshBasicMaterial({transparent:true, color:0xffffff, opacity:.1, side:THREE.DoubleSide, map:THREE.ImageUtils.loadTexture('Assets/Images/bg1.jpg')});
 
+				bgClickMat =  new THREE.MeshBasicMaterial({color:0xffffff, side:THREE.DoubleSide, transparent:true, opacity:.1});
+				
+				bg = new THREE.Mesh(new THREE.PlaneGeometry(1600, 800, 1, 1),bgMat);
+				bg.position.z = -200;
+				
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 
@@ -89,8 +110,6 @@
 
 				document.body.appendChild( renderer.domElement );
 
-				//
-
 				var material = new THREE.MeshBasicMaterial( { envMap: cubeCamera.renderTarget } );
 
 				sphere = new THREE.Mesh( new THREE.SphereGeometry( 20, 30, 15 ), material );
@@ -99,10 +118,16 @@
 				cube = new THREE.Mesh( new THREE.CubeGeometry( 20, 20, 20 ), material );
 				scene.add( cube );
 
-				torus = new THREE.Mesh( new THREE.TorusKnotGeometry( 20, 5, 100, 25 ), material );
+				torus = new THREE.Mesh( new THREE.TetrahedronGeometry( 20), material );
 				scene.add( torus );
+				
+				
+				
 				var pl = new THREE.DirectionalLight(0xffffff, 1.0);
 				scene.add(pl);
+				
+				reflectionCube = THREE.ImageUtils.loadTextureCube( urls );
+				reflectionCube.format = THREE.RGBFormat;
 
 				var plbottom = new THREE.AmbientLight( 0x404040 );
 				scene.add(plbottom);
@@ -127,7 +152,6 @@
 				
 				var environmentLoader = new THREE.JSONLoader();
 				environmentLoader.load( "Assets/SceneFinal/environment.js", loadEnvironment);
-				
 				
 				playerMat = new THREE.MeshLambertMaterial( { side:THREE.DoubleSide, envMap:reflectionCube, reflectivity:.5, combine:THREE.MixOperation, vertexColors:THREE.VertexColors, shading:THREE.FlatShading});
 				playerMat.skinning = true;
@@ -179,6 +203,24 @@
 			function onDocumentMouseDown( event ) {
 
 				event.preventDefault();
+				var vector = new THREE.Vector3( ( event.clientX / window.innerWidth ) * 2 - 1, - ( event.clientY / window.innerHeight ) * 2 + 1, 0.5 );
+				projector.unprojectVector( vector, camera );
+	
+				var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+	
+				var intersects = raycaster.intersectObjects( playerArr );
+				if(cameraRad>8){
+					if ( intersects.length > 0 ) {
+						doClickEffect = true;
+						clickInits();
+					}
+				}else{
+					doClickEffect = true;
+					clickInits();
+				}
+				
+				//////////
+				event.preventDefault();
 
 				onPointerDownPointerX = event.clientX;
 				onPointerDownPointerY = event.clientY;
@@ -188,6 +230,11 @@
 
 				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 				document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+			}
+			
+			
+			function clickInits(){
+				clickEffect = Math.floor(Math.random()*4);
 			}
 
 			function changeVertexColors(OBJ, LT){
@@ -231,6 +278,20 @@
 			}
 
 			function onDocumentMouseWheel( event ) {
+				
+				
+				if ( event.wheelDeltaY ) {
+					cameraRad -= event.wheelDeltaY * 0.01;
+				} else if ( event.wheelDelta ) {
+					cameraRad -= event.wheelDelta * 0.01;			
+				} else if ( event.detail ) {
+					cameraRad -= event.detail * 0.01;
+				}
+				
+				if(cameraRad<2)cameraRad=2;
+				if(cameraRad>20)cameraRad=20;
+				
+				
 
 				// WebKit
 
@@ -257,9 +318,84 @@
 			}
 
 			function animate() {
-
+				
 				requestAnimationFrame( animate );
+
+				var delta = clock.getDelta();
+				THREE.AnimationHandler.update( delta*timeMult );
+
+				var wf;
+				if(dancer){
+					wf = dancer.getWaveform();
+				}
+				
+				if(player && faceScaleObject){
+		
+					if(effectNum==0){
+						if(wf)
+							faceScaleObject.animate(wf);
+						else 	
+							faceScaleObject.animate(null);
+					}else if(effectNum==1){
+						distortionObject.animate();	
+					}
+					
+					var boneInc=0;
+					player.geometry.colorsNeedUpdate = true;
+					
+					player.updateMatrixWorld(true);
+					var meshGlobal = new THREE.Vector3().setFromMatrixPosition(player.matrixWorld);
+					
+					player.traverse(function (bone) {
+						if(bone instanceof THREE.Bone) {
+							if(boneInc<1)
+								bonePos = new THREE.Vector3().setFromMatrixPosition(bone.skinMatrix).add(meshGlobal);
+							
+							boneInc++;
+							//console.log(typeof (bone), "GlobalPos", twinGlobalPos.x, twinGlobalPos.y, twinGlobalPos.z);
+						}
+					});
+					
+					hitCube.position.copy(bonePos);		
+					hitCube.position.y-=3;
+					
+				}
+				
+				if(doClickEffect){
+					doClick();
+			
+				}
+
+				//for(var k=0;k<mesh.geometry.vertices.length; k++){
+					//if(wf){
+						//mesh.geometry.vertices[k].y = wf[k*2]*100;
+						//mesh.geometry.verticesNeedUpdate = true;
+					//}
+				//}
+				cs+=(cameraSpeed-cs)*.2; 
+				cameraInc+= cs;	
+				
+				var xPos = bonePos.x+Math.sin(cameraInc)*cameraRad;
+				var zPos = bonePos.z+Math.cos(cameraInc)*cameraRad;
+				
+/* 				camera.position.x = xPos;
+				camera.position.z = zPos;
+				
+				camera.position.y += ( -mouseY - camera.position.y ) * .009;
+				
+				var maxY =20;
+				if(camera.position.y > maxY) camera.position.y = maxY;
+				if(camera.position.y < 3) camera.position.y = 3;
+			
+				
+				camera.lookAt(bonePos);
+				
+				cameraCopy.position.copy(camera.position);
+				cameraCopy.rotation.copy(camera.rotation); */
+				
+				//renderer.render( scene, camera );
 				render();
+				////////////////////////
 
 			}
 
@@ -273,23 +409,23 @@
 				phi = THREE.Math.degToRad( 90 - lat );
 				theta = THREE.Math.degToRad( lon );
 
-				sphere.position.x = Math.sin( time * 0.001 ) * 30;
-				sphere.position.y = Math.sin( time * 0.0011 ) * 30;
-				sphere.position.z = Math.sin( time * 0.0012 ) * 30;
+				sphere.position.x = Math.sin( time * 0.001 ) * 60;
+				sphere.position.y = Math.sin( time * 0.0011 ) * 60;
+				sphere.position.z = Math.sin( time * 0.0012 ) * 60;
 
 				sphere.rotation.x += 0.02;
 				sphere.rotation.y += 0.03;
 
-				cube.position.x = Math.sin( time * 0.001 + 2 ) * 30;
-				cube.position.y = Math.sin( time * 0.0011 + 2 ) * 30;
-				cube.position.z = Math.sin( time * 0.0012 + 2 ) * 30;
+				cube.position.x = Math.sin( time * 0.001 + 2 ) * 60;
+				cube.position.y = Math.sin( time * 0.0011 + 2 ) * 60;
+				cube.position.z = Math.sin( time * 0.0012 + 2 ) * 60;
 
 				cube.rotation.x += 0.02;
 				cube.rotation.y += 0.03;
 
-				torus.position.x = Math.sin( time * 0.001 + 4 ) * 30;
-				torus.position.y = Math.sin( time * 0.0011 + 4 ) * 30;
-				torus.position.z = Math.sin( time * 0.0012 + 4 ) * 30;
+				torus.position.x = Math.sin( time * 0.001 + 4 ) * 60;
+				torus.position.y = Math.sin( time * 0.0011 + 4 ) * 60;
+				torus.position.z = Math.sin( time * 0.0012 + 4 ) * 60;
 
 				torus.rotation.x += 0.02;
 				torus.rotation.y += 0.03;
@@ -309,6 +445,72 @@
 				renderer.render( scene, camera );
 
 			}
+			
+			function doKick(){
+				timeMult= Math.random()*5;
+				animation.currentTime = Math.random()*2047;
+				cameraSpeed= -10+Math.random()*20;
+				cameraSpeed*=.005;
+				
+				if(Math.random()>.2){
+					bgMat.opacity = .2+Math.random()*.4;
+				}else{
+					bgMat.opacity = 0.0;
+				}
+
+				effectNum=Math.floor(Math.random()*3.0);
+				distortionObject.resetFaces();
+				faceScaleObject.resetFaces();
+				
+				player.material.reflectivity = Math.random();
+				
+				
+				if(Math.random()>.5){
+					playerMat.color.setHSL(Math.random(), 1.0, .5+Math.random()*.5)
+					playerMat.vertexColors = THREE.FaceColors;
+				}else{
+					playerMat.color.setHSL(Math.random(), 1.0, 1.0)
+					playerMat.vertexColors = THREE.VertexColors;	
+				}
+				//console.log(player.material.vertexColors);
+
+				//distortionObject.resetFaces();
+				
+			}
+			
+			function doClick(){
+				player.material = clickMat;
+				//bg.material = bgClickMat;
+				environment.material.visible = false;
+				clickHue+=.06;
+				clickHue = clickHue%1.0;
+				clickBW+=.06;		
+				switch(clickEffect){
+					case 0:
+					clickMat.color.setHSL(clickHue, 1.0, .5);
+					break;
+					case 1:
+						clickMat.color.setHSL(Math.random(), 1.0, .5);
+					break;
+					case 2:
+						clickMat.color.setHSL(0, 0, Math.random());
+					break;
+					case 3:
+						clickMat.color.setHSL(0, 0, .5+Math.sin(clickBW)*.5);
+					break;
+				}
+			}
+			
+			function initDrag(){
+				document.getElementById("load").style.display="block";
+				document.getElementById("loading").innerHTML="DRAG YOUR SONG.MP3 HERE AND LET'S DANCE";
+				
+				document.addEventListener( 'drop', onDocumentDrop, false );
+				document.addEventListener( 'dragover', onDocumentDragOver, false );
+				document.addEventListener( 'dragleave', onDocumentLeave, false );
+			
+			}
+
 
 		</script>
 

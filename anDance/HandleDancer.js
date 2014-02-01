@@ -4,9 +4,9 @@ var dancerOT = false;
 
 function initDancer(fl) {
 	
-	var AUDIO_FILE="";// = 'Assets/Songs/first',
+	var AUDIO_FILE="";// = '',
 	if(!fl){
-		AUDIO_FILE = 'http://localhost/tempo/Tempo_files/Assets/Songs/first';	
+		AUDIO_FILE = 'Assets/Songs/Santa-Esmeralda';	
 	}else{
 		AUDIO_FILE = fl;
 	}
@@ -68,7 +68,7 @@ function initDancer(fl) {
 }
 
 function initPlayButton(){
-	var loading = document.getElementById( 'loading' ),
+	var loading = document.getElementById( 'info' ),
 		anchor  = document.createElement('A'),
 		supported = Dancer.isSupported(),
 		p;
@@ -76,8 +76,8 @@ function initPlayButton(){
 	
 	anchor.appendChild( document.createTextNode( supported ? 'PLAY' : 'close' ) );
 	anchor.setAttribute( 'href', '#' );
-	loading.innerHTML = '';
-	loading.appendChild( anchor );
+	loading.innerHTML = '<div onclick="startPlaying()">PLAY</div>';
+	//loading.appendChild( anchor );
 	
 	
 	if ( !supported ) {
@@ -87,13 +87,22 @@ function initPlayButton(){
 	}
 	
 	
-	anchor.addEventListener( 'click', function () {
+	loading.addEventListener( 'click', function () {
 		dancer.play();
-		document.getElementById("bottomMiddle").style.display= "block";
-		document.getElementById("topMiddle").style.display= "block";
+		//document.getElementById("bottomMiddle").style.display= "block";
+		//document.getElementById("topMiddle").style.display= "block";
 
-		document.getElementById( 'load' ).style.display = "none";	
+		//document.getElementById( 'load' ).style.display = "none";	
 		playing = true;
 		
 	});	
+}
+
+function startPlaying(){
+		dancer.play();
+	//		document.getElementById("bottomMiddle").style.display= "block";
+	//		document.getElementById("topMiddle").style.display= "block";
+	//
+	//		document.getElementById( 'load' ).style.display = "none";	
+		playing = true;
 }
