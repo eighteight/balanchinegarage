@@ -6,7 +6,7 @@ function initDancer(fl) {
 	
 	var AUDIO_FILE="";// = '',
 	if(!fl){
-		AUDIO_FILE = 'Assets/Songs/Santa-Esmeralda';	
+		AUDIO_FILE = 'Assets/Songs/first';	
 	}else{
 		AUDIO_FILE = fl;
 	}
@@ -68,31 +68,18 @@ function initDancer(fl) {
 }
 
 function initPlayButton(){
-	var loading = document.getElementById( 'info' ),
-		anchor  = document.createElement('A'),
-		supported = Dancer.isSupported(),
-		p;
+	var loading = document.getElementById( 'info' );
 	
+	loading.innerHTML = '<div>PLAY</div>';
 	
-	anchor.appendChild( document.createTextNode( supported ? 'PLAY' : 'close' ) );
-	anchor.setAttribute( 'href', '#' );
-	loading.innerHTML = '<div onclick="startPlaying()">PLAY</div>';
-	//loading.appendChild( anchor );
-	
-	
-	if ( !supported ) {
+	if ( !Dancer.isSupported() ) {
 		p = document.createElement('P');
 		p.appendChild( document.createTextNode( 'Your browser does not currently support either Web Audio API or Audio Data API. The audio may play, but the visualizers will not move to the music; check out the latest Chrome or Firefox browsers!' ) );
 		loading.appendChild( p );
 	}
 	
-	
 	loading.addEventListener( 'click', function () {
 		dancer.play();
-		//document.getElementById("bottomMiddle").style.display= "block";
-		//document.getElementById("topMiddle").style.display= "block";
-
-		//document.getElementById( 'load' ).style.display = "none";	
 		playing = true;
 		
 	});	
