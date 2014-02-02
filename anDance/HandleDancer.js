@@ -6,7 +6,7 @@ function initDancer(fl) {
 	
 	var AUDIO_FILE="";// = '',
 	if(!fl){
-		AUDIO_FILE = 'Assets/Songs/first';	
+		AUDIO_FILE = 'Assets/Songs/Santa-Esmeralda';	
 	}else{
 		AUDIO_FILE = fl;
 	}
@@ -86,10 +86,6 @@ function initPlayButton(){
 }
 
 function startPlaying(){
-		dancer.play();
-	//		document.getElementById("bottomMiddle").style.display= "block";
-	//		document.getElementById("topMiddle").style.display= "block";
-	//
-	//		document.getElementById( 'load' ).style.display = "none";	
+		dancer.play();	
 		playing = true;
 }
