@@ -58,8 +58,10 @@ function initDancer(fl) {
 
 	function loaded () {
 		songLoaded = true;
-		if(playerLoaded)
+		dancer.pause();
+		if(playerLoaded){
 			initPlayButton();
+		}
 	}
 	
 	// For debugging
@@ -80,12 +82,6 @@ function initPlayButton(){
 	
 	loading.addEventListener( 'click', function () {
 		dancer.play();
-		playing = true;
-		
+		playing = true;;
 	});	
-}
-
-function startPlaying(){
-		dancer.play();	
-		playing = true;
 }

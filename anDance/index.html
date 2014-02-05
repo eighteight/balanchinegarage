@@ -15,7 +15,7 @@
 			#info {
 				position: absolute;
 				top: 0px; width: 100%;
-				color: #ffffff;
+				color: #333333;
 				padding: 5px;
 				font-family:Monospace;
 				font-size:13px;
@@ -49,11 +49,11 @@
 		
 		<script>
 
-			var camera, cubeCamera, cameraCopy, scene, renderer;
+			var camera, cubeCamera, scene, renderer;
 			var reflectionCube, playerArr=[], vertexCols = [], songLoaded = false, playerLoaded = false, timeMult = 1, player, projector;
 			var doClickEffect = false, clickHue = 0.0, clickEffect = 0, clickBW = 0.0, bgClickMat;
 			var cs=0.0,cameraSpeed = 0.0, cameraInc = 0.0, bonePos = new THREE.Vector3(), cameraRad = 20.0,mouseX = 0.0, mouseY = 0.0, windowHalfX = window.innerWidth *.5,  windowHalfY = window.innerHeight *.5;;
-			var bg, bgMat, effectNum = 3;
+			var effectNum = 3, playing = false;
 			var fov = 70,
 			isUserInteracting = false,
 			onMouseDownMouseX = 0, onMouseDownMouseY = 0,
@@ -87,16 +87,9 @@
 				mesh.scale.x = -1;
 				scene.add( mesh );
 				
-				scene.fog = new THREE.FogExp2( 0xffffff, .001);
+				scene.fog = new THREE.FogExp2( 0xffffff, .01);
 				
 				projector = new THREE.Projector();
-				
-				bgMat =  new THREE.MeshBasicMaterial({transparent:true, color:0xffffff, opacity:.1, side:THREE.DoubleSide, map:THREE.ImageUtils.loadTexture('Assets/Images/bg1.jpg')});
-
-				bgClickMat =  new THREE.MeshBasicMaterial({color:0xffffff, side:THREE.DoubleSide, transparent:true, opacity:.1});
-				
-				bg = new THREE.Mesh(new THREE.PlaneGeometry(1600, 800, 1, 1),bgMat);
-				bg.position.z = -200;
 				
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setSize( window.innerWidth, window.innerHeight );
@@ -250,8 +243,7 @@
 
 			function killClick(){
 				player.material = playerMat;
-				bg.material = bgMat;
-				//environment.material.visible = true;
+				scene.fog.density = 0.001;
 			}
 			
 			function onDocumentMouseWheel( event ) {
@@ -286,6 +278,8 @@
 				requestAnimationFrame( animate );
 
 				var delta = clock.getDelta();
+				
+				updateFog();
 				THREE.AnimationHandler.update( delta*timeMult );
 
 				var wf;
@@ -350,16 +344,9 @@
 				if(camera.position.y > maxY) camera.position.y = maxY;
 				if(camera.position.y < 3) camera.position.y = 3;
 			
-				
 				camera.lookAt(bonePos);
-				/* 				
-				cameraCopy.position.copy(camera.position);
-				cameraCopy.rotation.copy(camera.rotation); */
 				
 				renderer.render( scene, camera );
-				//render();
-				////////////////////////
-
 			}
 
 			function render() {
@@ -381,7 +368,6 @@
 				cubeCamera.updateCubeMap( renderer, scene );
 
 				renderer.render( scene, camera );
-
 			}
 			
 			function doKick(){
@@ -390,10 +376,10 @@
 				cameraSpeed= -10+Math.random()*20;
 				cameraSpeed*=.005;
 				
-				if(Math.random()>.2){
-					bgMat.opacity = .2+Math.random()*.4;
-				}else{
-					bgMat.opacity = 0.0;
+				if (Math.abs(cameraSpeed)>0.05){
+					scene.fog.density = 0.002;
+				} else {
+					scene.fog.density = 0.001;
 				}
 
 				effectNum=Math.floor(Math.random()*3.0);
@@ -402,13 +388,12 @@
 				
 				player.material.reflectivity = Math.random();
 				
-				
 				if(Math.random()>.5){
 					playerMat.color.setHSL(Math.random(), 1.0, .5+Math.random()*.5)
 					playerMat.vertexColors = THREE.FaceColors;
 				}else{
 					playerMat.color.setHSL(Math.random(), 1.0, 1.0)
-					playerMat.vertexColors = THREE.VertexColors;	
+					playerMat.vertexColors = THREE.VertexColors;
 				}
 				//console.log(player.material.vertexColors);
 
@@ -417,9 +402,8 @@
 			}
 			
 			function doClick(){
+				scene.fog.density = 0.002;
 				player.material = clickMat;
-				//bg.material = bgClickMat;
-				//environment.material.visible = false;
 				clickHue+=.06;
 				clickHue = clickHue%1.0;
 				clickBW+=.06;		
@@ -455,9 +439,6 @@
 						
 				var file = event.dataTransfer.files[ 0 ];
 				var reader = new FileReader();
-				
-				//dancer = null;
-				
 				reader.onload = function ( event ) {
 					
 					initDancer(event.target.result);
@@ -475,6 +456,14 @@
 
 				event.preventDefault();
 
+			}
+			
+			function updateFog(){
+				if (!playing) return;
+				
+				var deltaFromStart = 5 - clock.getElapsedTime();
+				if (deltaFromStart < 0) return;
+				scene.fog.density = 0.01*deltaFromStart;
 			}
 
 		</script>
