@@ -52,8 +52,8 @@
 			var camera, cubeCamera, scene, renderer;
 			var reflectionCube, playerArr=[], vertexCols = [], songLoaded = false, playerLoaded = false, timeMult = 1, player, projector;
 			var doClickEffect = false, clickHue = 0.0, clickEffect = 0, clickBW = 0.0, bgClickMat;
-			var cs=0.0,cameraSpeed = 0.0, cameraInc = 0.0, bonePos = new THREE.Vector3(), cameraRad = 20.0,mouseX = 0.0, mouseY = 0.0, windowHalfX = window.innerWidth *.5,  windowHalfY = window.innerHeight *.5;;
-			var effectNum = 3, playing = false;
+			var cs=0.0,cameraSpeed = 0.0, cameraInc = 0.0, bonePos = new THREE.Vector3(), cameraRad = 20.0,mouseX = 0.0, mouseY = 0.0, windowHalfX = window.innerWidth *.5,  windowHalfY = window.innerHeight *.5;
+			var effectNum = 3, startTime = -1;
 			var fov = 70,
 			isUserInteracting = false,
 			onMouseDownMouseX = 0, onMouseDownMouseY = 0,
@@ -243,7 +243,6 @@
 
 			function killClick(){
 				player.material = playerMat;
-				scene.fog.density = 0.001;
 			}
 			
 			function onDocumentMouseWheel( event ) {
@@ -402,7 +401,7 @@
 			}
 			
 			function doClick(){
-				scene.fog.density = 0.002;
+				//scene.fog.density = 0.002;
 				player.material = clickMat;
 				clickHue+=.06;
 				clickHue = clickHue%1.0;
@@ -459,9 +458,11 @@
 			}
 			
 			function updateFog(){
-				if (!playing) return;
+								console.log(scene.fog.density);
+				if (startTime == -1) return;
 				
-				var deltaFromStart = 5 - clock.getElapsedTime();
+				var deltaFromStart = startTime + 5 - clock.getElapsedTime();
+
 				if (deltaFromStart < 0) return;
 				scene.fog.density = 0.01*deltaFromStart;
 			}

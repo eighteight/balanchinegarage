@@ -82,6 +82,6 @@ function initPlayButton(){
 	
 	loading.addEventListener( 'click', function () {
 		dancer.play();
-		playing = true;;
+		startTime = clock.getElapsedTime();
 	});	
 }
